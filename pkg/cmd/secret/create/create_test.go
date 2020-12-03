@@ -116,3 +116,42 @@ func TestNewCmdCreate(t *testing.T) {
 		})
 	}
 }
+
+func Test_createRun(t *testing.T) {
+	tests := []struct {
+		name       string
+		opts       *CreateOptions
+		stdin      string
+		wantOut    string
+		wantStderr string
+		wantErr    bool
+	}{
+		{
+			name: "explicit literal body",
+		},
+		{
+			name: "explicit body filename",
+		},
+		{
+			name: "stdin body",
+		},
+		{
+			name: "explicit org name",
+		},
+		{
+			name: "implicit org name",
+		},
+		{
+			name: "scalar visibility",
+		},
+		{
+			name: "selected visibility",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, 1, 0)
+		})
+	}
+}
