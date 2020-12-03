@@ -37,7 +37,7 @@ func TestNewCmdCreate(t *testing.T) {
 		},
 		{
 			name: "explicit org with selected repo",
-			cli:  "--org=coolOrg -vcoolRepo cool_secret",
+			cli:  "--org=coolOrg -vselected -rcoolRepo cool_secret",
 			wants: CreateOptions{
 				SecretName:      "cool_secret",
 				Visibility:      shared.VisSelected,
@@ -48,7 +48,7 @@ func TestNewCmdCreate(t *testing.T) {
 		},
 		{
 			name: "explicit org with selected repos",
-			cli:  "--org=coolOrg -vcoolRepo,radRepo,goodRepo cool_secret",
+			cli:  `--org=coolOrg -vselected -r="coolRepo,radRepo,goodRepo" cool_secret`,
 			wants: CreateOptions{
 				SecretName:      "cool_secret",
 				Visibility:      shared.VisSelected,

@@ -49,7 +49,7 @@ func NewCmdCreate(f *cmdutil.Factory, runF func(*CreateOptions) error) *cobra.Co
 			$ gh secret create NEW_SECRET -b"some literal value"
 			$ gh secret create NEW_SECRET -b"@file.json"
 			$ gh secret create ORG_SECRET --org
-			$ gh secret create ORG_SECRET --org=anotherOrg --visibility="repo1,repo2,repo3"
+			$ gh secret create ORG_SECRET --org=anotherOrg --visibility=selected -r="repo1,repo2,repo3"
 			$ gh secret create ORG_SECRET --org=anotherOrg --visibility="all"
 `),
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -69,12 +69,14 @@ func NewCmdCreate(f *cmdutil.Factory, runF func(*CreateOptions) error) *cobra.Co
 
 			if cmd.Flags().Changed("visibility") {
 				if opts.OrgName == "" {
-					return &cmdutil.FlagError{Err: errors.New("--visibility not supported for repository secrets; did you mean to pass --org?")}
+					return &cmdutil.FlagError{Err: errors.New(
+						"--visibility not supported for repository secrets; did you mean to pass --org?")}
 				}
-				if opts.Visibility != shared.VisAll && opts.Visibility != shared.VisPrivate {
-					opts.RepositoryNames = strings.Split(opts.Visibility, ",")
-					opts.Visibility = shared.VisSelected
-				}
+			}
+
+			if cmd.Flags().Changed("repos") && opts.Visibility != shared.VisSelected {
+				return &cmdutil.FlagError{Err: errors.New(
+					"--repos only supported when --visibility='selected'")}
 			}
 
 			if runF != nil {
@@ -86,7 +88,8 @@ func NewCmdCreate(f *cmdutil.Factory, runF func(*CreateOptions) error) *cobra.Co
 	}
 	cmd.Flags().StringVarP(&opts.OrgName, "org", "o", "", "List secrets for an organization")
 	cmd.Flags().Lookup("org").NoOptDefVal = "@owner"
-	cmd.Flags().StringVarP(&opts.Visibility, "visibility", "v", "private", "Set visibility for an organization secret; either 'all', 'private', or a list of repository names.")
+	cmd.Flags().StringVarP(&opts.Visibility, "visibility", "v", "private", "Set visibility for an organization secret: `all`, `private`, or `selected`")
+	cmd.Flags().StringSliceVarP(&opts.RepositoryNames, "repos", "r", []string{}, "List of repository names for `selected` visibility")
 	cmd.Flags().StringVarP(&opts.Body, "body", "b", "-", "Provide either a literal string or a file path; prepend file paths with an @. Reads from STDIN if not provided.")
 
 	return cmd
