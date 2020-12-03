@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -23,6 +24,8 @@ type CreateOptions struct {
 	HttpClient func() (*http.Client, error)
 	IO         *iostreams.IOStreams
 	BaseRepo   func() (ghrepo.Interface, error)
+
+	RandomOverride io.Reader
 
 	SecretName      string
 	OrgName         string
@@ -125,8 +128,7 @@ func createRun(opts *CreateOptions) error {
 		return fmt.Errorf("failed to fetch public key: %w", err)
 	}
 
-	// TODO provide encryption via opts so it can be controlled in tests(?)
-	eBody, err := box.SealAnonymous(nil, body, &pk.Raw, nil)
+	eBody, err := box.SealAnonymous(nil, body, &pk.Raw, opts.RandomOverride)
 	if err != nil {
 		return fmt.Errorf("failed to encrypt body: %w", err)
 	}
