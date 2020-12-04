@@ -182,17 +182,25 @@ func Test_createRun_org(t *testing.T) {
 			name: "explicit org name",
 			opts: &CreateOptions{
 				OrgName:    "UmbrellaCorporation",
-				Visibility: "all",
+				Visibility: shared.VisAll,
 			},
 		},
 		{
 			name: "implicit org name",
 			opts: &CreateOptions{
 				OrgName:    "@owner",
-				Visibility: "private",
+				Visibility: shared.VisPrivate,
 			},
 		},
-		// TODO selected visibility
+		{
+			name: "selected visibility",
+			opts: &CreateOptions{
+				OrgName:         "UmbrellaCorporation",
+				Visibility:      shared.VisSelected,
+				RepositoryNames: []string{"birkin", "wesker"},
+			},
+			wantRepositories: []int{1, 2},
+		},
 	}
 
 	for _, tt := range tests {
@@ -212,7 +220,10 @@ func Test_createRun_org(t *testing.T) {
 				fmt.Sprintf("orgs/%s/actions/secrets/cool_secret", orgName)),
 				httpmock.StatusStringResponse(201, `{}`))
 
-			// TODO repository lookup
+			if len(tt.opts.RepositoryNames) > 0 {
+				reg.Register(httpmock.GraphQL(`query MapRepositoryNames\b`),
+					httpmock.StringResponse(`{"data":{"birkin":{"databaseId":1},"wesker":{"databaseId":2}}}`))
+			}
 
 			mockClient := func() (*http.Client, error) {
 				return &http.Client{Transport: reg}, nil
