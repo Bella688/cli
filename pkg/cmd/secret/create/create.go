@@ -96,7 +96,7 @@ func NewCmdCreate(f *cmdutil.Factory, runF func(*CreateOptions) error) *cobra.Co
 			return createRun(opts)
 		},
 	}
-	cmd.Flags().StringVarP(&opts.OrgName, "org", "o", "", "List secrets for an organization")
+	cmd.Flags().StringVar(&opts.OrgName, "org", "", "List secrets for an organization")
 	cmd.Flags().Lookup("org").NoOptDefVal = "@owner"
 	cmd.Flags().StringVarP(&opts.Visibility, "visibility", "v", "private", "Set visibility for an organization secret: `all`, `private`, or `selected`")
 	cmd.Flags().StringSliceVarP(&opts.RepositoryNames, "repos", "r", []string{}, "List of repository names for `selected` visibility")

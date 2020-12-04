@@ -46,7 +46,7 @@ func NewCmdList(f *cmdutil.Factory, runF func(*ListOptions) error) *cobra.Comman
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.OrgName, "org", "o", "", "List secrets for an organization")
+	cmd.Flags().StringVar(&opts.OrgName, "org", "", "List secrets for an organization")
 	cmd.Flags().Lookup("org").NoOptDefVal = "@owner"
 
 	return cmd
