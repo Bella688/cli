@@ -2,8 +2,12 @@ package create
 
 import (
 	"bytes"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
+	"github.com/cli/cli/internal/ghrepo"
 	"github.com/cli/cli/pkg/cmd/secret/shared"
 	"github.com/cli/cli/pkg/cmdutil"
 	"github.com/cli/cli/pkg/iostreams"
@@ -22,6 +26,11 @@ func TestNewCmdCreate(t *testing.T) {
 		{
 			name:     "no name",
 			cli:      "",
+			wantsErr: true,
+		},
+		{
+			name:     "multiple names",
+			cli:      "cool_secret good_secret",
 			wantsErr: true,
 		},
 		{
@@ -117,7 +126,100 @@ func TestNewCmdCreate(t *testing.T) {
 	}
 }
 
-func Test_createRun(t *testing.T) {
+func Test_createRun_repo(t *testing.T) {
+	tests := []struct {
+		name       string
+		opts       *CreateOptions
+		stdin      string
+		wantOut    string
+		wantStderr string
+		wantErr    bool
+		baseRepo   func() (ghrepo.Interface, error)
+	}{
+		{
+			name: "implicit repo",
+			opts: &CreateOptions{
+				SecretName: "cool_secret",
+				Body:       "a secret",
+			},
+		},
+		{
+			name: "explicit repo",
+			opts: &CreateOptions{
+				SecretName: "cool_secret",
+				Body:       "a secret",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// TODO
+			assert.Equal(t, 1, 0)
+		})
+	}
+}
+
+func Test_getBody(t *testing.T) {
+	tests := []struct {
+		name     string
+		bodyArg  string
+		want     string
+		stdin    string
+		fromFile bool
+	}{
+		{
+			name:    "literal value",
+			bodyArg: "a secret",
+			want:    "a secret",
+		},
+		{
+			name:    "from stdin",
+			bodyArg: "-",
+			want:    "a secret",
+			stdin:   "a secret",
+		},
+		{
+			name:     "from file",
+			fromFile: true,
+			want:     "a secret from a file",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			io, stdin, _, _ := iostreams.Test()
+
+			io.SetStdinTTY(false)
+
+			_, err := stdin.WriteString(tt.stdin)
+			assert.NoError(t, err)
+
+			if tt.fromFile {
+				dir := os.TempDir()
+				tmpfile, err := ioutil.TempFile(dir, "testfile*")
+				assert.NoError(t, err)
+				_, err = tmpfile.WriteString(tt.want)
+				assert.NoError(t, err)
+				tt.bodyArg = fmt.Sprintf("@%s", tmpfile.Name())
+			}
+
+			body, err := getBody(&CreateOptions{
+				Body: tt.bodyArg,
+				IO:   io,
+			})
+			assert.NoError(t, err)
+
+			assert.Equal(t, string(body), tt.want)
+
+		})
+
+	}
+
+}
+
+/*
+func Test_createRun_org(t *testing.T) {
 	tests := []struct {
 		name       string
 		opts       *CreateOptions
@@ -128,6 +230,10 @@ func Test_createRun(t *testing.T) {
 	}{
 		{
 			name: "explicit literal body",
+			opts: &CreateOptions{
+				SecretName: "cool_secret",
+				Body:       "a secret",
+			},
 		},
 		{
 			name: "explicit body filename",
@@ -155,3 +261,4 @@ func Test_createRun(t *testing.T) {
 		})
 	}
 }
+*/
