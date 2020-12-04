@@ -2,14 +2,17 @@ package create
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"testing"
 
 	"github.com/cli/cli/internal/ghrepo"
 	"github.com/cli/cli/pkg/cmd/secret/shared"
 	"github.com/cli/cli/pkg/cmdutil"
+	"github.com/cli/cli/pkg/httpmock"
 	"github.com/cli/cli/pkg/iostreams"
 	"github.com/google/shlex"
 	"github.com/stretchr/testify/assert"
@@ -127,37 +130,43 @@ func TestNewCmdCreate(t *testing.T) {
 }
 
 func Test_createRun_repo(t *testing.T) {
-	tests := []struct {
-		name       string
-		opts       *CreateOptions
-		stdin      string
-		wantOut    string
-		wantStderr string
-		wantErr    bool
-		baseRepo   func() (ghrepo.Interface, error)
-	}{
-		{
-			name: "implicit repo",
-			opts: &CreateOptions{
-				SecretName: "cool_secret",
-				Body:       "a secret",
-			},
-		},
-		{
-			name: "explicit repo",
-			opts: &CreateOptions{
-				SecretName: "cool_secret",
-				Body:       "a secret",
-			},
-		},
+	reg := &httpmock.Registry{}
+
+	reg.Register(httpmock.REST("GET", "repos/owner/repo/actions/secrets/public-key"),
+		httpmock.JSONResponse(PubKey{ID: "123", Key: "CDjXqf7AJBXWhMczcy+Fs7JlACEptgceysutztHaFQI="}))
+
+	reg.Register(httpmock.REST("PUT", "repos/owner/repo/actions/secrets/cool_secret"), httpmock.StatusStringResponse(201, `{}`))
+
+	mockClient := func() (*http.Client, error) {
+		return &http.Client{Transport: reg}, nil
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// TODO
-			assert.Equal(t, 1, 0)
-		})
+	io, _, _, _ := iostreams.Test()
+
+	opts := &CreateOptions{
+		BaseRepo: func() (ghrepo.Interface, error) {
+			return ghrepo.FromFullName("owner/repo")
+		},
+		HttpClient: mockClient,
+		IO:         io,
+		SecretName: "cool_secret",
+		Body:       "a secret",
+		// Cribbed from https://github.com/golang/crypto/commit/becbf705a91575484002d598f87d74f0002801e7
+		RandomOverride: bytes.NewReader([]byte{5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5}),
 	}
+
+	err := createRun(opts)
+	assert.NoError(t, err)
+
+	reg.Verify(t)
+
+	data, err := ioutil.ReadAll(reg.Requests[1].Body)
+	assert.NoError(t, err)
+	var payload SecretPayload
+	err = json.Unmarshal(data, &payload)
+	assert.NoError(t, err)
+	assert.Equal(t, payload.KeyID, "123")
+	assert.Equal(t, payload.EncryptedValue, "UKYUCbHd0DJemxa3AOcZ6XcsBwALG9d4bpB8ZT0gSV39vl3BHiGSgj8zJapDxgB2BwqNqRhpjC4=")
 }
 
 func Test_getBody(t *testing.T) {
