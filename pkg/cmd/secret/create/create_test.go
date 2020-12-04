@@ -26,6 +26,8 @@ func TestNewCmdCreate(t *testing.T) {
 		stdinTTY bool
 		wantsErr bool
 	}{
+		// TODO invalid visibility
+		// TODO selected vis w/o -r
 		{
 			name:     "no name",
 			cli:      "",

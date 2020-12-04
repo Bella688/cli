@@ -72,11 +72,21 @@ func NewCmdCreate(f *cmdutil.Factory, runF func(*CreateOptions) error) *cobra.Co
 					return &cmdutil.FlagError{Err: errors.New(
 						"--visibility not supported for repository secrets; did you mean to pass --org?")}
 				}
+
+				if opts.Visibility != shared.VisAll && opts.Visibility != shared.VisPrivate && opts.Visibility != shared.VisSelected {
+					return &cmdutil.FlagError{Err: errors.New(
+						"--visibility must be one of `all`, `private`, or `selected`")}
+				}
 			}
 
 			if cmd.Flags().Changed("repos") && opts.Visibility != shared.VisSelected {
 				return &cmdutil.FlagError{Err: errors.New(
 					"--repos only supported when --visibility='selected'")}
+			}
+
+			if opts.Visibility == shared.VisSelected && len(opts.RepositoryNames) == 0 {
+				return &cmdutil.FlagError{Err: errors.New(
+					"--repos flag required when --visibility='selected'")}
 			}
 
 			if runF != nil {
