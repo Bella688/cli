@@ -26,8 +26,16 @@ func TestNewCmdCreate(t *testing.T) {
 		stdinTTY bool
 		wantsErr bool
 	}{
-		// TODO invalid visibility
-		// TODO selected vis w/o -r
+		{
+			name:     "invalid visibility",
+			cli:      "cool_secret --org -v'mistyVeil'",
+			wantsErr: true,
+		},
+		{
+			name:     "invalid visibility",
+			cli:      "cool_secret --org -v'selected'",
+			wantsErr: true,
+		},
 		{
 			name:     "no name",
 			cli:      "",
@@ -76,7 +84,7 @@ func TestNewCmdCreate(t *testing.T) {
 			cli:  `cool_secret -b"a secret"`,
 			wants: CreateOptions{
 				SecretName: "cool_secret",
-				Visibility: "private",
+				Visibility: shared.VisPrivate,
 				Body:       "a secret",
 				OrgName:    "",
 			},
@@ -86,7 +94,17 @@ func TestNewCmdCreate(t *testing.T) {
 			cli:  `cool_secret --org -b"@cool.json"`,
 			wants: CreateOptions{
 				SecretName: "cool_secret",
-				Visibility: "private",
+				Visibility: shared.VisPrivate,
+				Body:       "@cool.json",
+				OrgName:    "@owner",
+			},
+		},
+		{
+			name: "vis all",
+			cli:  `cool_secret --org -b"@cool.json" -vall`,
+			wants: CreateOptions{
+				SecretName: "cool_secret",
+				Visibility: shared.VisAll,
 				Body:       "@cool.json",
 				OrgName:    "@owner",
 			},
