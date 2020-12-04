@@ -243,16 +243,14 @@ func Test_createRun_org(t *testing.T) {
 					httpmock.StringResponse(`{"data":{"birkin":{"databaseId":1},"wesker":{"databaseId":2}}}`))
 			}
 
-			mockClient := func() (*http.Client, error) {
-				return &http.Client{Transport: reg}, nil
-			}
-
 			io, _, _, _ := iostreams.Test()
 
 			tt.opts.BaseRepo = func() (ghrepo.Interface, error) {
 				return ghrepo.FromFullName("NeoUmbrella/repo")
 			}
-			tt.opts.HttpClient = mockClient
+			tt.opts.HttpClient = func() (*http.Client, error) {
+				return &http.Client{Transport: reg}, nil
+			}
 			tt.opts.IO = io
 			tt.opts.SecretName = "cool_secret"
 			tt.opts.Body = "a secret"

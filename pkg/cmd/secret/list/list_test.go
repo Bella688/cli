@@ -2,9 +2,12 @@ package list
 
 import (
 	"bytes"
+	"net/http"
 	"testing"
 
+	"github.com/cli/cli/internal/ghrepo"
 	"github.com/cli/cli/pkg/cmdutil"
+	"github.com/cli/cli/pkg/httpmock"
 	"github.com/cli/cli/pkg/iostreams"
 	"github.com/google/shlex"
 	"github.com/stretchr/testify/assert"
@@ -69,3 +72,48 @@ func Test_NewCmdList(t *testing.T) {
 }
 
 // TODO run tests
+
+func Test_listRun(t *testing.T) {
+	tests := []struct {
+		name    string
+		tty     bool
+		opts    *ListOptions
+		wantOut []string
+	}{
+		{
+			name:    "repo tty",
+			tty:     true,
+			opts:    &ListOptions{},
+			wantOut: []string{"TODO"},
+		},
+		// TODO repo not tty
+		// TODO org tty
+		// TODO org not tty
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reg := &httpmock.Registry{}
+
+			// TODO register stuff
+			io, _, _, _ := iostreams.Test()
+
+			io.SetStdoutTTY(tt.tty)
+
+			tt.opts.IO = io
+			tt.opts.BaseRepo = func() (ghrepo.Interface, error) {
+				return ghrepo.FromFullName("owner/repo")
+			}
+			tt.opts.HttpClient = func() (*http.Client, error) {
+				return &http.Client{Transport: reg}, nil
+			}
+
+			err := listRun(tt.opts)
+			assert.NoError(t, err)
+
+			reg.Verify(t)
+
+			// TODO check wantOut
+		})
+	}
+}
