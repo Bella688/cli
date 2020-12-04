@@ -171,6 +171,83 @@ func Test_createRun_repo(t *testing.T) {
 	assert.Equal(t, payload.EncryptedValue, "UKYUCbHd0DJemxa3AOcZ6XcsBwALG9d4bpB8ZT0gSV39vl3BHiGSgj8zJapDxgB2BwqNqRhpjC4=")
 }
 
+func Test_createRun_org(t *testing.T) {
+	tests := []struct {
+		name             string
+		opts             *CreateOptions
+		wantVisibility   string
+		wantRepositories []int
+	}{
+		{
+			name: "explicit org name",
+			opts: &CreateOptions{
+				OrgName:    "UmbrellaCorporation",
+				Visibility: "all",
+			},
+		},
+		{
+			name: "implicit org name",
+			opts: &CreateOptions{
+				OrgName:    "@owner",
+				Visibility: "private",
+			},
+		},
+		// TODO selected visibility
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reg := &httpmock.Registry{}
+
+			orgName := tt.opts.OrgName
+			if orgName == "@owner" {
+				orgName = "NeoUmbrella"
+			}
+
+			reg.Register(httpmock.REST("GET",
+				fmt.Sprintf("orgs/%s/actions/secrets/public-key", orgName)),
+				httpmock.JSONResponse(PubKey{ID: "123", Key: "CDjXqf7AJBXWhMczcy+Fs7JlACEptgceysutztHaFQI="}))
+
+			reg.Register(httpmock.REST("PUT",
+				fmt.Sprintf("orgs/%s/actions/secrets/cool_secret", orgName)),
+				httpmock.StatusStringResponse(201, `{}`))
+
+			// TODO repository lookup
+
+			mockClient := func() (*http.Client, error) {
+				return &http.Client{Transport: reg}, nil
+			}
+
+			io, _, _, _ := iostreams.Test()
+
+			tt.opts.BaseRepo = func() (ghrepo.Interface, error) {
+				return ghrepo.FromFullName("NeoUmbrella/repo")
+			}
+			tt.opts.HttpClient = mockClient
+			tt.opts.IO = io
+			tt.opts.SecretName = "cool_secret"
+			tt.opts.Body = "a secret"
+			// Cribbed from https://github.com/golang/crypto/commit/becbf705a91575484002d598f87d74f0002801e7
+			tt.opts.RandomOverride = bytes.NewReader([]byte{5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5})
+
+			err := createRun(tt.opts)
+			assert.NoError(t, err)
+
+			reg.Verify(t)
+
+			data, err := ioutil.ReadAll(reg.Requests[len(reg.Requests)-1].Body)
+			assert.NoError(t, err)
+			var payload SecretPayload
+			err = json.Unmarshal(data, &payload)
+			assert.NoError(t, err)
+			assert.Equal(t, payload.KeyID, "123")
+			assert.Equal(t, payload.EncryptedValue, "UKYUCbHd0DJemxa3AOcZ6XcsBwALG9d4bpB8ZT0gSV39vl3BHiGSgj8zJapDxgB2BwqNqRhpjC4=")
+			assert.Equal(t, payload.Visibility, tt.opts.Visibility)
+			assert.ElementsMatch(t, payload.Repositories, tt.wantRepositories)
+		})
+	}
+}
+
 func Test_getBody(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -228,48 +305,3 @@ func Test_getBody(t *testing.T) {
 	}
 
 }
-
-/*
-func Test_createRun_org(t *testing.T) {
-	tests := []struct {
-		name       string
-		opts       *CreateOptions
-		stdin      string
-		wantOut    string
-		wantStderr string
-		wantErr    bool
-	}{
-		{
-			name: "explicit literal body",
-			opts: &CreateOptions{
-				SecretName: "cool_secret",
-				Body:       "a secret",
-			},
-		},
-		{
-			name: "explicit body filename",
-		},
-		{
-			name: "stdin body",
-		},
-		{
-			name: "explicit org name",
-		},
-		{
-			name: "implicit org name",
-		},
-		{
-			name: "scalar visibility",
-		},
-		{
-			name: "selected visibility",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, 1, 0)
-		})
-	}
-}
-*/
